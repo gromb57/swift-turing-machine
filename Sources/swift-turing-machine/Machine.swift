@@ -33,7 +33,7 @@ struct Machine {
             // legitimate reason to stop processing
             return false
         }
-        guard self.state < self.ruban.count else {
+        guard self.position < self.ruban.count else {
             // configuration/execution error
             return false
         }
@@ -41,8 +41,18 @@ struct Machine {
             // configuration/execution error
             return false
         }
-        self.ruban[self.position] = step.write
         self.state = step.change
+        if self.ruban[self.position] == Blank && step.write != Blank {
+            if (self.position + 1) == Start  {
+                self.ruban.insert(step.write, at: self.position + 1)
+                self.position += 1
+            } else {
+                self.ruban.insert(step.write, at: self.position)
+            }
+        } else {
+            self.ruban[self.position] = step.write
+        }
+        
         self.position += step.direction == .right ? 1 : -1
         
         return true
