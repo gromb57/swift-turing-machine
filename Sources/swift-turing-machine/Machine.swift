@@ -8,24 +8,46 @@
 import Foundation
 
 struct Machine {
+    enum RunState {
+        case waiting
+        case running
+        case stopped
+    }
+
     var ruban: Ruban
     var steps: [Step]
     var position: Int = NSNotFound
-    var state: State = NSNotFound
+    var state: State = Start
+    private var runState: RunState = .waiting
     
     var debugDescription: String {
         return "\(ruban) Position:\(position) State:\(state)"
     }
     
+    init(ruban: Ruban, steps: [Step], position: Int = NSNotFound, state: State = Start) {
+        self.ruban = ruban
+        self.steps = steps
+        self.position = position
+        self.state = state
+    }
+    
     mutating func run() {
-        self.position = 1
-        self.state = 1
+        if self.runState != .waiting {
+            print("This machine already run, please create a new one.")
+            return
+        }
+
+        if self.position == NSNotFound {
+            self.position = 1
+        }
+        self.runState = .running
 
         print(self.debugDescription)
         
         while process() {
             print(self.debugDescription)
         }
+        self.runState = .stopped
     }
 
     private mutating func process() -> Bool {
@@ -33,16 +55,15 @@ struct Machine {
             // legitimate reason to stop processing
             return false
         }
-        guard self.position < self.ruban.count else {
-            // configuration/execution error
-            return false
-        }
         guard let step = self.findStep() else {
             // configuration/execution error
             return false
         }
         self.state = step.change
-        if self.ruban[self.position] == Blank && step.write != Blank {
+        
+        if self.position == self.ruban.count {
+            self.ruban.append(step.write)
+        } else if self.ruban[self.position] == Blank && step.write != Blank {
             if (self.position + 1) == Start  {
                 self.ruban.insert(step.write, at: self.position + 1)
                 self.position += 1
@@ -55,12 +76,18 @@ struct Machine {
         
         self.position += step.direction == .right ? 1 : -1
         
+        // fix: limit of using an array
+        if self.position == -1 {
+            self.ruban.insert(Blank, at: 0)
+            self.position = 0
+        }
+        
         return true
     }
 
     private func findStep() -> Step? {
-        return self.steps.first { Step in
-            return Step.start == self.state && Step.read == self.ruban[self.position]
+        return self.steps.first { step in
+            return step.start == self.state && ((self.position == self.ruban.count) || (self.position < self.ruban.count && step.read == self.ruban[self.position]))
         }
     }
 }
