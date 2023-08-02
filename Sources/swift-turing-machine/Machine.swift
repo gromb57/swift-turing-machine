@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// Simulate a turing machine with one tape/ruban
 struct Machine {
     enum RunState {
         case waiting
@@ -18,12 +19,16 @@ struct Machine {
     var steps: [Step]
     var position: Int = NSNotFound
     var state: State = Start
-    private var runState: RunState = .waiting
+    private var __runState: RunState = .waiting
+    var runState: RunState {
+        return self.__runState
+    }
     
     var debugDescription: String {
         return "\(ruban) Position:\(position) State:\(state)"
     }
     
+    // MARK: Initializers
     init(ruban: Ruban, steps: [Step], position: Int = NSNotFound, state: State = Start) {
         self.ruban = ruban
         self.steps = steps
@@ -31,8 +36,28 @@ struct Machine {
         self.state = state
     }
     
+    // MARK: Setters
+    @discardableResult
+    mutating func setRunState(runState: RunState) -> Self {
+        switch runState {
+        case .waiting:
+            // this state is forbidden to set
+            break
+        case .running:
+            if self.__runState == .waiting {
+                self.__runState = .running
+            }
+        case .stopped:
+            if self.__runState == .running {
+                self.__runState = .stopped
+            }
+        }
+        return self
+    }
+    
+    // MARK: Methods
     mutating func run() {
-        if self.runState != .waiting {
+        if self.__runState != .waiting {
             print("This machine already run, please create a new one.")
             return
         }
@@ -40,17 +65,17 @@ struct Machine {
         if self.position == NSNotFound {
             self.position = 1
         }
-        self.runState = .running
+        self.__runState = .running
 
         print(self.debugDescription)
         
         while process() {
             print(self.debugDescription)
         }
-        self.runState = .stopped
+        self.__runState = .stopped
     }
 
-    private mutating func process() -> Bool {
+    mutating func process() -> Bool {
         guard self.state != Final else {
             // legitimate reason to stop processing
             return false
@@ -74,7 +99,14 @@ struct Machine {
             self.ruban[self.position] = step.write
         }
         
-        self.position += step.direction == .right ? 1 : -1
+        switch step.direction {
+        case .left:
+            self.position -= 1
+        case .right:
+            self.position += 1
+        case .none:
+            break
+        }
         
         // fix: limit of using an array
         if self.position == -1 {

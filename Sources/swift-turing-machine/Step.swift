@@ -22,6 +22,7 @@ let Blank: Symbol = "B"
 enum Direction {
     case left
     case right
+    case none
 }
 
 // MARK: Step
